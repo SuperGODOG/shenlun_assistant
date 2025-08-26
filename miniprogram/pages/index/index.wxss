@@ -1,0 +1,125 @@
+/* 全局容器 */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f7fafc;
+  padding: 0 0 30rpx 0;
+}
+
+/* 头部样式 */
+.header {
+  background-color: #1a365d;
+  padding: 20rpx 30rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.title {
+  color: white;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+/* 聊天容器 */
+.chat-container {
+  padding: 30rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 输入区域 */
+.input-section {
+  margin-bottom: 30rpx;
+}
+
+.input-label {
+  font-size: 32rpx;
+  color: #2d3748;
+  font-weight: 500;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.textarea-container {
+  background-color: #edf2f7;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.05);
+}
+
+.input-textarea {
+  width: 100%;
+  min-height: 200rpx;
+  max-height: 400rpx;
+  font-size: 28rpx;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.placeholder {
+  color: #718096;
+}
+
+/* 按钮样式 */
+.button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 40rpx;
+}
+
+.submit-button {
+  background-color: #1a365d;
+  color: white;
+  font-size: 32rpx;
+  padding: 20rpx 60rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+  box-shadow: 0 4rpx 6rpx rgba(0, 0, 0, 0.1);
+}
+
+.submit-button:active {
+  background-color: #2c5282;
+}
+
+/* 响应容器 */
+.response-container {
+  margin: 20rpx 30rpx;
+  background-color: #edf2f7;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.response-header {
+  background-color: #1a365d;
+  padding: 15rpx 20rpx;
+}
+
+.response-title {
+  color: white;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.response-content {
+  padding: 20rpx;
+  font-size: 28rpx;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.response-textarea {
+  width: 100%;
+  min-height: 300rpx;
+  max-height: 1000rpx;
+  font-size: 28rpx;
+  color: #4a5568;
+  line-height: 1.6;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}

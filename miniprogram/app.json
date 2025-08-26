@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1a365d",
+    "navigationBarTitleText": "申论助手",
+    "navigationBarTextStyle": "white"
+  },
+  "networkTimeout": {
+    "request": 60000,
+    "downloadFile": 60000
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

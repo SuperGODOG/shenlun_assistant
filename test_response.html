@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本显示测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-area {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            max-height: 600px;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow-y: auto;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>申论助手 - 文本显示测试</h1>
+        
+        <div class="test-area">
+            <h3>API测试</h3>
+            <button onclick="testAPI()">测试长文本API</button>
+            <button onclick="testShortAPI()">测试短文本API</button>
+            <div class="info" id="apiInfo">点击按钮测试API响应</div>
+        </div>
+        
+        <div class="test-area">
+            <h3>响应内容</h3>
+            <textarea id="responseText" placeholder="API响应将显示在这里..."></textarea>
+            <div class="info" id="textInfo">文本长度: 0 字符</div>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const apiInfo = document.getElementById('apiInfo');
+            const responseText = document.getElementById('responseText');
+            const textInfo = document.getElementById('textInfo');
+            
+            apiInfo.textContent = '正在请求API...';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5001/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: JSON.stringify({
+                            "题目": "请详细分析申论考试中综合分析题的答题技巧，包括题型特点、解题步骤、常见问题和提分要点，并提供具体的答题模板和示例",
+                            "答案": null
+                        }),
+                        format: "text"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    responseText.value = data.response;
+                    textInfo.textContent = `文本长度: ${data.response.length} 字符`;
+                    apiInfo.textContent = `API请求成功 - 状态: ${response.status}`;
+                } else {
+                    apiInfo.textContent = `API请求失败 - 状态: ${response.status}`;
+                    responseText.value = `错误: ${data.error || '未知错误'}`;
+                }
+            } catch (error) {
+                apiInfo.textContent = `网络错误: ${error.message}`;
+                responseText.value = '';
+            }
+        }
+        
+        async function testShortAPI() {
+            const apiInfo = document.getElementById('apiInfo');
+            const responseText = document.getElementById('responseText');
+            const textInfo = document.getElementById('textInfo');
+            
+            apiInfo.textContent = '正在请求API...';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:5001/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: JSON.stringify({
+                            "题目": "申论考试有哪些基本题型？",
+                            "答案": null
+                        }),
+                        format: "text"
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    responseText.value = data.response;
+                    textInfo.textContent = `文本长度: ${data.response.length} 字符`;
+                    apiInfo.textContent = `API请求成功 - 状态: ${response.status}`;
+                } else {
+                    apiInfo.textContent = `API请求失败 - 状态: ${response.status}`;
+                    responseText.value = `错误: ${data.error || '未知错误'}`;
+                }
+            } catch (error) {
+                apiInfo.textContent = `网络错误: ${error.message}`;
+                responseText.value = '';
+            }
+        }
+        
+        // 监听文本变化
+        document.getElementById('responseText').addEventListener('input', function() {
+            const textInfo = document.getElementById('textInfo');
+            textInfo.textContent = `文本长度: ${this.value.length} 字符`;
+        });
+    </script>
+</body>
+</html>
