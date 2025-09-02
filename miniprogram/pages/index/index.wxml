@@ -5,7 +5,10 @@
   
   <view class="chat-container">
     <view class="input-section">
-      <text class="input-label">题目</text>
+      <view class="input-header">
+        <text class="input-label">题目</text>
+        <button class="paste-button" bindtap="pasteToQuestion">粘贴</button>
+      </view>
       <view class="textarea-container">
         <textarea 
           class="input-textarea" 
@@ -21,7 +24,10 @@
     </view>
     
     <view class="input-section">
-      <text class="input-label">答案</text>
+      <view class="input-header">
+        <text class="input-label">答案</text>
+        <button class="paste-button" bindtap="pasteToAnswer">粘贴</button>
+      </view>
       <view class="textarea-container">
         <textarea 
           class="input-textarea" 
@@ -37,7 +43,7 @@
     </view>
     
     <view class="button-container">
-      <button class="submit-button" bindtap="submitContent" loading="{{isLoading}}" disabled="{{isLoading}}">{{isLoading ? '提交中...' : '提交'}}</button>
+      <button class="submit-button" bindtap="submitContent" loading="{{isLoading}}" disabled="{{isLoading}}">{{isLoading ? (showingAd ? '广告播放中...' : 'AI思考中...') : '提交'}}</button>
     </view>
   </view>
   
@@ -45,15 +51,8 @@
     <view class="response-header">
       <text class="response-title">评价结果</text>
     </view>
-    <view class="response-content">
-      <textarea 
-        class="response-textarea" 
-        value="{{response}}" 
-        disabled="true" 
-        auto-height 
-        maxlength="-1"
-        show-confirm-bar="{{false}}"
-      />
-    </view>
+    <scroll-view class="response-content" scroll-y="true" enhanced="true" show-scrollbar="false">
+      <text class="response-text" selectable="true">{{response}}</text>
+    </scroll-view>
   </view>
 </view>

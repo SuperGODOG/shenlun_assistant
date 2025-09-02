@@ -1,8 +1,24 @@
 # config.py
 
+import os
+
 # LLM API Configuration
 LLM_API_URL = "https://api.deepseek.com/v1/chat/completions"
-LLM_API_KEY = "sk-53358761635443840000000000000000"
+LLM_API_KEY = "sk-886d0b28b94f49e694288d638f199265"
+
+
+# 智谱AI嵌入模型配置
+ZHIPU_API_URL = "https://open.bigmodel.cn/api/paas/v4/"
+ZHIPU_API_KEY = "46dacce23dc14d0abb809888df48628e.iRlq8xVjxc4zexKP"
+ZHIPU_EMBEDDING_MODEL = "embedding-2"
+
+# 知识库配置
+KNOWLEDGE_BASE_DIR = os.getenv('KNOWLEDGE_BASE_DIR', 'knowledge_base_data')
+MAX_DOCUMENT_SIZE = int(os.getenv('MAX_DOCUMENT_SIZE', '10485760'))  # 10MB
+SUPPORTED_FORMATS = ['txt', 'docx', 'pdf', 'md']
+
+# 知识库功能开关
+ENABLE_KNOWLEDGE_BASE = os.getenv('ENABLE_KNOWLEDGE_BASE', 'true').lower() == 'true'
 
 # System prompt for the LLM
 SYSTEM_PROMPT = """你是一名申论讲师兼任考官，需按《国家公务员考试申论评分标准》从'立意、结构、论据、语言、对策'五维度'讲解或者批改并且你的打分应适当下调10%左右;根据题目字数要求划分题目类型以及对应答题措施.if 有作答,根据题目分值给出批改分数 else给出题目标准参考答案 
@@ -137,4 +153,6 @@ SYSTEM_PROMPT = """你是一名申论讲师兼任考官，需按《国家公务�
  
  避免笼统评价如'结构混乱'，需具体指出：分论点2与总论点脱节，建议添加过渡句'从…视角看…'。 
  
- 内容评分（占比0.4）：检查是否围绕主题，观点是否清晰，对策是否具体。 结构评分（占比0.3）：分析总-分-总结构是否完整，段落间过渡是否自然。 语言评分（占比0.2）：标注语病、冗余表述，并给出修改建议。 文面评分（占比0.1）：检查标点、格式是否规范"""
+ 内容评分（要点或者分析占比0.7）：检查是否围绕主题，观点是否清晰，对策是否具体。 
+ 结构评分（分别作答或者针对性作答占比0.1）：分析总-分-总结构是否完整，段落间过渡是否自然。 
+ 语言评分（占比0.2）：标注语病、冗余表述，并给出修改建议。 """

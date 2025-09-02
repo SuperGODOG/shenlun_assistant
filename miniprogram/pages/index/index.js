@@ -4,7 +4,8 @@ Page({
     question: '',
     answer: '',
     response: '',
-    isLoading: false
+    isLoading: false,
+    showingAd: false
   },
 
   onLoad: function() {
@@ -25,6 +26,70 @@ Page({
     });
   },
 
+  // 粘贴到题目输入框
+  pasteToQuestion: function() {
+    wx.getClipboardData({
+      success: (res) => {
+        const clipboardData = res.data;
+        if (clipboardData) {
+          this.setData({
+            question: clipboardData
+          });
+          wx.showToast({
+            title: '粘贴成功',
+            icon: 'success',
+            duration: 1500
+          });
+        } else {
+          wx.showToast({
+            title: '剪切板为空',
+            icon: 'none',
+            duration: 1500
+          });
+        }
+      },
+      fail: () => {
+        wx.showToast({
+          title: '获取剪切板失败',
+          icon: 'none',
+          duration: 1500
+        });
+      }
+    });
+  },
+
+  // 粘贴到答案输入框
+  pasteToAnswer: function() {
+    wx.getClipboardData({
+      success: (res) => {
+        const clipboardData = res.data;
+        if (clipboardData) {
+          this.setData({
+            answer: clipboardData
+          });
+          wx.showToast({
+            title: '粘贴成功',
+            icon: 'success',
+            duration: 1500
+          });
+        } else {
+          wx.showToast({
+            title: '剪切板为空',
+            icon: 'none',
+            duration: 1500
+          });
+        }
+      },
+      fail: () => {
+        wx.showToast({
+          title: '获取剪切板失败',
+          icon: 'none',
+          duration: 1500
+        });
+      }
+    });
+  },
+
   // 提交内容到后端
   submitContent: function() {
     // 检查题目是否为空
@@ -41,6 +106,62 @@ Page({
     this.setData({
       isLoading: true
     });
+
+    // 自动播放广告
+    this.playAdAndSubmit();
+  },
+
+  // 播放广告并提交
+  playAdAndSubmit: function() {
+    const videoAd = wx.createRewardedVideoAd({
+      adUnitId: 'adunit-xxxxxxxxxxxxxxxx' // 需要替换为真实的广告位ID
+    });
+
+    this.setData({
+      showingAd: true
+    });
+
+    // 显示AI思考提示
+    wx.showToast({
+      title: 'AI正在思考中，预计10-20秒',
+      icon: 'loading',
+      duration: 2000
+    });
+
+    videoAd.onLoad(() => {
+      console.log('激励视频广告加载成功');
+    });
+
+    videoAd.onError((err) => {
+      console.error('激励视频广告加载失败', err);
+      // 广告加载失败，直接提交请求
+      this.setData({
+        showingAd: false
+      });
+      this.sendRequest();
+    });
+
+    videoAd.onClose((res) => {
+      this.setData({
+        showingAd: false
+      });
+      // 无论用户是否看完广告，都继续提交请求
+      this.sendRequest();
+    });
+
+    // 显示广告
+    videoAd.show().catch(() => {
+      // 广告显示失败，直接提交
+      console.log('广告显示失败，直接提交请求');
+      this.setData({
+        showingAd: false
+      });
+      this.sendRequest();
+    });
+  },
+
+  // 发送请求到后端
+  sendRequest: function() {
 
     // 构建请求数据
     const requestData = {

@@ -1,3 +1,15 @@
 Flask
 requests
 flask-cors
+numpy
+sentence-transformers
+faiss-cpu
+scikit-learn
+# 文档处理依赖
+python-docx
+PyPDF2
+# 文件上传处理
+Werkzeug
+# 性能和并发控制
+gevent
+gunicorn

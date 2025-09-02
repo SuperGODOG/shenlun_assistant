@@ -3,14 +3,146 @@
 import requests
 import json
 import re
-from config import LLM_API_URL, LLM_API_KEY, SYSTEM_PROMPT
+from config import LLM_API_URL, LLM_API_KEY, SYSTEM_PROMPT, ENABLE_KNOWLEDGE_BASE
+from knowledge_base import get_knowledge_base
+import logging
+
+def beautify_table_for_text(table_text):
+    """
+    为纯文本格式美化表格
+    """
+    lines = table_text.strip().split('\n')
+    if len(lines) < 2:
+        return table_text
+    
+    # 检测表格分隔符
+    separators = ['|', '\t', '  ', '，', '、']
+    best_separator = None
+    max_columns = 0
+    
+    for sep in separators:
+        test_columns = len(lines[0].split(sep))
+        if test_columns > max_columns and test_columns > 1:
+            max_columns = test_columns
+            best_separator = sep
+    
+    if not best_separator or max_columns < 2:
+        return table_text
+    
+    # 解析表格数据
+    table_data = []
+    for line in lines:
+        if line.strip():
+            cells = [cell.strip() for cell in line.split(best_separator)]
+            # 确保每行都有相同数量的列
+            while len(cells) < max_columns:
+                cells.append('')
+            table_data.append(cells[:max_columns])
+    
+    if len(table_data) < 2:
+        return table_text
+    
+    # 计算每列的最大宽度
+    col_widths = [0] * max_columns
+    for row in table_data:
+        for i, cell in enumerate(row):
+            # 计算中文字符宽度（中文字符占2个位置）
+            width = sum(2 if ord(char) > 127 else 1 for char in cell)
+            col_widths[i] = max(col_widths[i], width)
+    
+    # 设置最小列宽
+    col_widths = [max(width, 4) for width in col_widths]
+    
+    # 生成美化的表格（纯文本风格）
+    result = []
+    
+    # 生成分隔线
+    def make_separator():
+        parts = []
+        for width in col_widths:
+            parts.append('─' * (width + 2))
+        return '┌' + '┬'.join(parts) + '┐' if not result else '├' + '┼'.join(parts) + '┤'
+    
+    # 格式化行
+    def format_row(row, is_header=False):
+        parts = []
+        for i, cell in enumerate(row):
+            # 计算需要的填充
+            cell_width = sum(2 if ord(char) > 127 else 1 for char in cell)
+            padding = col_widths[i] - cell_width
+            if is_header:
+                parts.append(f' 【{cell}】{" " * (padding-2)} ' if padding >= 2 else f' 【{cell}】 ')
+            else:
+                parts.append(f' {cell}{" " * padding} ')
+        return '│' + '│'.join(parts) + '│'
+    
+    # 添加顶部分隔线
+    result.append(make_separator())
+    
+    # 添加表头
+    if table_data:
+        result.append(format_row(table_data[0], is_header=True))
+        # 添加表头分隔线
+        parts = []
+        for width in col_widths:
+            parts.append('─' * (width + 2))
+        result.append('├' + '┼'.join(parts) + '┤')
+        
+        # 添加数据行
+        for row in table_data[1:]:
+            result.append(format_row(row))
+    
+    # 添加底部分隔线
+    parts = []
+    for width in col_widths:
+        parts.append('─' * (width + 2))
+    result.append('└' + '┴'.join(parts) + '┘')
+    
+    return '\n'.join(result)
+
+def detect_and_beautify_tables_for_text(content):
+    """
+    检测并美化文本中的表格（纯文本格式）
+    """
+    lines = content.split('\n')
+    result_lines = []
+    current_table = []
+    in_table = False
+    
+    for line in lines:
+        # 检测是否是表格行（包含多个分隔符）
+        separators_count = sum(1 for sep in ['|', '\t'] if sep in line)
+        has_multiple_items = len([item for item in re.split(r'[|\t，、]', line) if item.strip()]) > 2
+        
+        if (separators_count > 0 or has_multiple_items) and line.strip():
+            if not in_table:
+                in_table = True
+            current_table.append(line)
+        else:
+            if in_table and current_table:
+                # 处理当前表格
+                table_text = '\n'.join(current_table)
+                beautified_table = beautify_table_for_text(table_text)
+                result_lines.append(beautified_table)
+                current_table = []
+                in_table = False
+            
+            result_lines.append(line)
+    
+    # 处理最后一个表格
+    if in_table and current_table:
+        table_text = '\n'.join(current_table)
+        beautified_table = beautify_table_for_text(table_text)
+        result_lines.append(beautified_table)
+    
+    return '\n'.join(result_lines)
 
 def markdown_to_text(markdown_content):
     """
-    将markdown文本转换为美化的纯文本
+    将markdown文本转换为美化的纯文本，包含表格美化
     """
-    # 移除markdown标记但保留结构
-    text = markdown_content
+    # 首先检测并美化表格
+    text = detect_and_beautify_tables_for_text(markdown_content)
     
     # 处理标题 - 转换为带前缀的文本
     text = re.sub(r'^#{6}\s+(.+)$', r'      • \1', text, flags=re.MULTILINE)
@@ -50,10 +182,133 @@ def markdown_to_text(markdown_content):
     
     return text
 
+def beautify_table(table_text):
+    """
+    美化表格文本，将混乱的表格重新格式化
+    """
+    lines = table_text.strip().split('\n')
+    if len(lines) < 2:
+        return table_text
+    
+    # 检测表格分隔符
+    separators = ['|', '\t', '  ', '，', '、']
+    best_separator = None
+    max_columns = 0
+    
+    for sep in separators:
+        test_columns = len(lines[0].split(sep))
+        if test_columns > max_columns and test_columns > 1:
+            max_columns = test_columns
+            best_separator = sep
+    
+    if not best_separator or max_columns < 2:
+        return table_text
+    
+    # 解析表格数据
+    table_data = []
+    for line in lines:
+        if line.strip():
+            cells = [cell.strip() for cell in line.split(best_separator)]
+            # 确保每行都有相同数量的列
+            while len(cells) < max_columns:
+                cells.append('')
+            table_data.append(cells[:max_columns])
+    
+    if len(table_data) < 2:
+        return table_text
+    
+    # 计算每列的最大宽度
+    col_widths = [0] * max_columns
+    for row in table_data:
+        for i, cell in enumerate(row):
+            # 计算中文字符宽度（中文字符占2个位置）
+            width = sum(2 if ord(char) > 127 else 1 for char in cell)
+            col_widths[i] = max(col_widths[i], width)
+    
+    # 设置最小列宽
+    col_widths = [max(width, 4) for width in col_widths]
+    
+    # 生成美化的表格
+    result = []
+    
+    # 生成分隔线
+    def make_separator():
+        parts = []
+        for width in col_widths:
+            parts.append('-' * (width + 2))
+        return '+' + '+'.join(parts) + '+'
+    
+    # 格式化行
+    def format_row(row):
+        parts = []
+        for i, cell in enumerate(row):
+            # 计算需要的填充
+            cell_width = sum(2 if ord(char) > 127 else 1 for char in cell)
+            padding = col_widths[i] - cell_width
+            parts.append(f' {cell}{" " * padding} ')
+        return '|' + '|'.join(parts) + '|'
+    
+    # 添加顶部分隔线
+    result.append(make_separator())
+    
+    # 添加表头
+    if table_data:
+        result.append(format_row(table_data[0]))
+        result.append(make_separator())
+        
+        # 添加数据行
+        for row in table_data[1:]:
+            result.append(format_row(row))
+    
+    # 添加底部分隔线
+    result.append(make_separator())
+    
+    return '\n'.join(result)
+
+def detect_and_beautify_tables(content):
+    """
+    检测并美化文本中的表格
+    """
+    lines = content.split('\n')
+    result_lines = []
+    current_table = []
+    in_table = False
+    
+    for line in lines:
+        # 检测是否是表格行（包含多个分隔符）
+        separators_count = sum(1 for sep in ['|', '\t'] if sep in line)
+        has_multiple_items = len([item for item in re.split(r'[|\t，、]', line) if item.strip()]) > 2
+        
+        if (separators_count > 0 or has_multiple_items) and line.strip():
+            if not in_table:
+                in_table = True
+            current_table.append(line)
+        else:
+            if in_table and current_table:
+                # 处理当前表格
+                table_text = '\n'.join(current_table)
+                beautified_table = beautify_table(table_text)
+                result_lines.append(beautified_table)
+                current_table = []
+                in_table = False
+            
+            result_lines.append(line)
+    
+    # 处理最后一个表格
+    if in_table and current_table:
+        table_text = '\n'.join(current_table)
+        beautified_table = beautify_table(table_text)
+        result_lines.append(beautified_table)
+    
+    return '\n'.join(result_lines)
+
 def beautify_markdown(content):
     """
-    美化markdown文本，添加更好的格式化
+    美化markdown文本，添加更好的格式化和表格美化
     """
+    # 首先检测并美化表格
+    content = detect_and_beautify_tables(content)
+    
     # 确保标题前后有空行
     content = re.sub(r'\n(#{1,6}\s+[^\n]+)', r'\n\n\1\n', content)
     
@@ -72,15 +327,17 @@ def beautify_markdown(content):
     
     return content
 
-def get_llm_response(prompt, format_type="text"):
+def get_llm_response(prompt, format_type="text", use_knowledge_base=None):
     """
-    Sends a prompt to the LLM and gets a response.
+    Sends a prompt to the LLM and gets a response with optional knowledge base enhancement.
 
     :param prompt: The input text to send to the LLM. Could be a JSON string.
     :param format_type: The desired output format ("markdown" or "text")
+    :param use_knowledge_base: Whether to use knowledge base for context enhancement
     :return: The response text from the LLM or an error message.
     """
     # 如果prompt是JSON字符串，尝试解析它
+    original_prompt = prompt
     try:
         # 检查是否是JSON字符串
         if isinstance(prompt, str) and (prompt.startswith('{') or prompt.startswith('[')):
@@ -90,6 +347,22 @@ def get_llm_response(prompt, format_type="text"):
     except json.JSONDecodeError:
         # 如果解析失败，保持原样
         pass
+    
+    # 知识库增强 - 受全局配置和参数控制
+    knowledge_context = ""
+    # 如果没有明确指定use_knowledge_base，则使用全局配置
+    if use_knowledge_base is None:
+        use_knowledge_base = ENABLE_KNOWLEDGE_BASE
+    
+    if use_knowledge_base and ENABLE_KNOWLEDGE_BASE:
+        try:
+            kb = get_knowledge_base()
+            knowledge_context = kb.get_context_for_query(prompt, max_context_length=800)
+            if knowledge_context:
+                logging.info(f"Retrieved knowledge context: {len(knowledge_context)} characters")
+        except Exception as e:
+            logging.warning(f"Knowledge base query failed: {e}")
+            knowledge_context = ""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {LLM_API_KEY}"
@@ -97,6 +370,11 @@ def get_llm_response(prompt, format_type="text"):
 
     # 根据格式类型调整系统提示词
     system_prompt = SYSTEM_PROMPT
+    
+    # 添加知识库上下文
+    if knowledge_context:
+        system_prompt += f"\n\n【相关知识库内容】\n{knowledge_context}\n\n请结合上述知识库内容回答用户问题，确保答案准确、专业。如果知识库内容与问题相关，请优先使用知识库中的信息。"
+    
     if format_type == "markdown":
         system_prompt += "\n\n请使用Markdown格式输出回答，包括适当的标题、列表、加粗等格式化元素，使内容更易读。"
     elif format_type == "text":
